@@ -10,11 +10,33 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+func GetByIdCleanup(oid primitive.ObjectID) (CategoryDB, errors.CustomError) {
+	categoryCollection, ctx := database.GetCollection(collectionName)
+	pipe := mongo.Pipeline{}
+
+	cursor, err := categoryCollection.Aggregate(ctx, pipe)
+	var result []CategoryDB
+	if err != nil {
+		return CategoryDB{}, errors.NewBadRequestError(err.Error())
+	}
+	if err = cursor.All(ctx, &result); err != nil {
+		return CategoryDB{}, errors.NewBadRequestError(err.Error())
+	}
+
+	if len(result) == 0 {
+		return CategoryDB{}, errors.NewNotFoundError("categoryId")
+
+	}
+
+	return result[0], nil
+}
+
 func GetById(oid primitive.ObjectID) (Category, errors.CustomError) {
 	categoryCollection, ctx := database.GetCollection(collectionName)
 
 	pipe := mongo.Pipeline{}
 	pipe = database.AppendMatchStage(pipe, "_id", oid)
+
 	pipe = database.AppendLookupStage(pipe, "subcategory")
 
 	cursor, err := categoryCollection.Aggregate(ctx, pipe)

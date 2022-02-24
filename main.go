@@ -11,15 +11,17 @@ import (
 	"github.com/birdglove2/nitad-backend/errors"
 	"github.com/birdglove2/nitad-backend/gcp"
 	"github.com/birdglove2/nitad-backend/redis"
+	"github.com/birdglove2/nitad-backend/utils"
 	"github.com/gofiber/fiber/v2"
 )
 
-//FIXME: defer / context / log / cache
+//FIXME: log / cache
 // TODO: cache fiber storage แยก branch
 
 var PORT = os.Getenv("PORT")
 
 func main() {
+	utils.InitLogger()
 	config.Loadenv()
 	envErr := config.Checkenv()
 	if envErr != nil {
@@ -33,6 +35,11 @@ func main() {
 	gcp.Init()
 	redis.Init()
 	app := config.InitApp()
+	// app.Use(logger.New(logger.Config{
+	// 	Format:     "[${ip}]:${port} ${status} - ${method} ${path}\n",
+	// 	TimeFormat: "02-Jan-2006",
+	// 	TimeZone:   "Asia/Bangkok",
+	// }))
 	api.CreateAPI(app)
 	cronjob.Init()
 

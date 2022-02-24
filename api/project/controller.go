@@ -5,12 +5,14 @@ import (
 	"strconv"
 
 	"github.com/birdglove2/nitad-backend/api/admin"
+	"github.com/birdglove2/nitad-backend/api/category"
 	"github.com/birdglove2/nitad-backend/database"
 	"github.com/birdglove2/nitad-backend/errors"
 	"github.com/birdglove2/nitad-backend/functions"
 	"github.com/birdglove2/nitad-backend/gcp"
 	"github.com/birdglove2/nitad-backend/redis"
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func NewController(
@@ -99,8 +101,12 @@ func (contc *Controller) GetProject(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{"success": true, "result": p})
 	}
 
-	var result Project
-	if result, err = GetById(objectId); err != nil {
+	// var result Project
+	// if result, err = GetById(objectId); err != nil {
+	// 	return errors.Throw(c, err)
+	// }
+	var result bson.M
+	if result, err = GetById2(objectId); err != nil {
 		return errors.Throw(c, err)
 	}
 
@@ -117,14 +123,18 @@ func (contc *Controller) GetProject(c *fiber.Ctx) error {
 // add a project
 func (contc *Controller) AddProject(c *fiber.Ctx) error {
 	projectBody, ok := c.Locals("projectBody").(*Project)
-	if !ok {
+	categories, ok2 := c.Locals("category").([]category.CategoryDB)
+	if !ok || !ok2 {
 		return errors.Throw(c, errors.NewInternalServerError("Add project went wrong!"))
 	}
+
+	log.Println("check 3", projectBody)
 
 	files, err := functions.ExtractFiles(c, "images")
 	if err != nil {
 		return errors.Throw(c, err)
 	}
+	log.Println("check 4")
 
 	imageURLs, err := gcp.UploadImages(c.Context(), files, collectionName)
 	if err != nil {
@@ -132,7 +142,9 @@ func (contc *Controller) AddProject(c *fiber.Ctx) error {
 	}
 	projectBody.Images = imageURLs
 
-	result, err := Add(projectBody)
+	log.Println("check 5")
+
+	result, err := Add(projectBody, categories)
 	if err != nil {
 		// if there is any error, remove the uploaded file from gcp
 		gcp.DeleteImages(c.Context(), imageURLs, collectionName)

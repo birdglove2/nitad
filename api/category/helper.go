@@ -1,7 +1,6 @@
 package category
 
 import (
-	"github.com/birdglove2/nitad-backend/api/subcategory"
 	"github.com/birdglove2/nitad-backend/errors"
 	"github.com/birdglove2/nitad-backend/functions"
 	"go.mongodb.org/mongo-driver/bson"
@@ -12,9 +11,9 @@ import (
 // receive array of categoryIds, then
 // find and return non-duplicated categories, and their ids
 // return []Category
-func FindByIds(cids []string) ([]Category, []primitive.ObjectID, errors.CustomError) {
+func FindByIds(cids []string) ([]CategoryDB, []primitive.ObjectID, errors.CustomError) {
 	var objectIds []primitive.ObjectID
-	var categories []Category
+	var categories []CategoryDB
 
 	cids = functions.RemoveDuplicateIds(cids)
 
@@ -24,18 +23,17 @@ func FindByIds(cids []string) ([]Category, []primitive.ObjectID, errors.CustomEr
 			return categories, objectIds, err
 		}
 
-		category, err := GetById(oid)
+		categoryDB, err := GetByIdCleanup(oid)
 		if err != nil {
 			return categories, objectIds, err
 		}
 
 		objectIds = append(objectIds, oid)
-		categories = append(categories, category)
+		categories = append(categories, categoryDB)
 
 	}
 
 	return categories, objectIds, nil
-
 }
 
 // validate requested string of a single categoryId
@@ -68,20 +66,37 @@ func BsonToCategory(b bson.M) Category {
 // multiple categories that contain only relevant subcategories
 // need to do this because the GetById of category return all subcategories
 // that are in the category, so we need to filter some out
-func FilterCatesWithSids(categories []Category, sids []primitive.ObjectID) ([]Category, errors.CustomError) {
-	finalCate := []Category{}
+func FilterCatesWithSids(categories []CategoryDB, sids []primitive.ObjectID) ([]CategoryDB, errors.CustomError) {
+	finalCate := []CategoryDB{}
 	for _, cate := range categories {
-		subcateThatIsInCate := []subcategory.Subcategory{}
-		for _, subcate := range cate.Subcategory {
-			for index, id := range sids {
-				if subcate.ID == id {
-					subcateThatIsInCate = append(subcateThatIsInCate, subcate)
+		// subcateThatIsInCate := []subcategory.Subcategory{}
+		sidsThatIsInCate := []primitive.ObjectID{}
+		for _, id := range cate.Subcategory {
+			for index, sid := range sids {
+				if id == sid {
+					sidsThatIsInCate = append(sidsThatIsInCate, id)
 					sids = remove(sids, index)
 					index--
 				}
 			}
 		}
-		cate.Subcategory = subcateThatIsInCate
+		// for _, subcate := range cate.Subcategory {
+		// 	for index, id := range sids {
+		// 		if subcate.ID == id {
+		// 			// subcateThatIsInCate = append(subcateThatIsInCate, subcate)
+		// 			sidsThatIsInCate = append(sidsThatIsInCate, id)
+		// 			sids = remove(sids, index)
+		// 			index--
+		// 		}
+		// 	}
+		// }
+		// cate.Subcategory = subcateThatIsInCate
+		cate.Subcategory = sidsThatIsInCate
+		// finalCate = append(finalCate, CategoryDB{
+		// 	ID:          cate.ID,
+		// 	Title:       cate.Title,
+		// 	Subcategory: sidsThatIsInCate,
+		// })
 		finalCate = append(finalCate, cate)
 	}
 

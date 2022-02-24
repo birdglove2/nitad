@@ -7,10 +7,15 @@ import (
 
 func AppendLookupStage(pipe mongo.Pipeline, collectionName string) mongo.Pipeline {
 	return append(pipe, bson.D{{Key: "$lookup", Value: bson.D{
-		{Key: "from", Value: collectionName},
-		{Key: "localField", Value: collectionName},
+		{Key: "from", Value: "subcategory"},
+		{Key: "localField", Value: "category.subcategory"},
 		{Key: "foreignField", Value: "_id"},
-		{Key: "as", Value: collectionName}}}})
+		{Key: "as", Value: "category.subcategory"}}}})
+	// return append(pipe, bson.D{{Key: "$lookup", Value: bson.D{
+	// 	{Key: "from", Value: collectionName},
+	// 	{Key: "localField", Value: collectionName},
+	// 	{Key: "foreignField", Value: "_id"},
+	// 	{Key: "as", Value: collectionName}}}})
 }
 
 func AppendUnwindStage(pipe mongo.Pipeline, collectionName string) mongo.Pipeline {

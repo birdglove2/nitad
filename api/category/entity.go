@@ -15,10 +15,14 @@ type Category struct {
 	UpdatedAt   time.Time                 `bson:"updatedAt" json:"updatedAt"`
 }
 
-// type CategoryClean struct {
-// 	ID    primitive.ObjectID `bson:"_id" json:"id"`
-// 	Title string             `bson:"title" json:"title"`
-// }
+// category that will keep inside the database
+type CategoryDB struct {
+	ID          primitive.ObjectID   `bson:"_id"`
+	Title       string               `bson:"title"`
+	Subcategory []primitive.ObjectID `bson:"subcategory" json:"subcategory"`
+	CreatedAt   time.Time            `bson:"createdAt" json:"createdAt"`
+	UpdatedAt   time.Time            `bson:"updatedAt" json:"updatedAt"`
+}
 
 type CategoryRequest struct {
 	Title       string   `form:"title" validate:"required"`

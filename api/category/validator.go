@@ -20,12 +20,12 @@ func AddAndEditCategoryValidator(c *fiber.Ctx) error {
 	}
 
 	category := new(Category)
-	subcategories, sids, err := subcategory.FindByIds(cr.Subcategory)
+	_, sids, err := subcategory.FindByIds(cr.Subcategory)
 	if err != nil {
 		return errors.Throw(c, err)
 	}
 
-	category.Subcategory = subcategories
+	// category.Subcategory = sids
 	category.Title = cr.Title
 	c.Locals("categoryBody", category)
 	c.Locals("sids", sids)

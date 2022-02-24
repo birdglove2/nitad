@@ -1,8 +1,10 @@
 package project
 
 import (
+	"log"
 	"time"
 
+	"github.com/birdglove2/nitad-backend/api/category"
 	"github.com/birdglove2/nitad-backend/api/subcategory"
 	"github.com/birdglove2/nitad-backend/database"
 	"github.com/birdglove2/nitad-backend/errors"
@@ -11,11 +13,47 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+func ToPrettyJSON(b bson.M) {
+	m := map[string]interface{}{}
+	bsonBytes, _ := bson.Marshal(b)
+	bson.Unmarshal(bsonBytes, &m)
+	log.Println(m)
+}
+
+func GetById2(oid primitive.ObjectID) (bson.M, errors.CustomError) {
+	projectCollection, ctx := database.GetCollection(collectionName)
+
+	pipe := GetLookupStage()
+	// pipe := mongo.Pipeline{}
+	pipe = database.AppendMatchStage(pipe, "_id", oid)
+
+	cursor, err := projectCollection.Aggregate(ctx, pipe)
+	// result := []Project{}
+	result2 := []bson.M{}
+
+	if err != nil {
+		return bson.M{}, errors.NewBadRequestError(err.Error())
+	}
+	if err = cursor.All(ctx, &result2); err != nil {
+		return bson.M{}, errors.NewBadRequestError(err.Error())
+	}
+
+	for _, res := range result2 {
+		ToPrettyJSON(res)
+	}
+
+	// if len(result) == 0 {
+	// 	return bson.M{}, errors.NewNotFoundError("projectId")
+	// }
+
+	return result2[0], nil
+}
+
 func GetById(oid primitive.ObjectID) (Project, errors.CustomError) {
 	projectCollection, ctx := database.GetCollection(collectionName)
 
-	// pipe := GetLookupStage()
-	pipe := mongo.Pipeline{}
+	pipe := GetLookupStage()
+	// pipe := mongo.Pipeline{}
 	pipe = database.AppendMatchStage(pipe, "_id", oid)
 
 	cursor, err := projectCollection.Aggregate(ctx, pipe)
@@ -64,10 +102,12 @@ func FindAll(pq *ProjectQuery) ([]Project, errors.CustomError) {
 	return result, nil
 }
 
-func Add(p *Project) (*Project, errors.CustomError) {
+func Add(p *Project, categories []category.CategoryDB) (*Project, errors.CustomError) {
 	collection, ctx := database.GetCollection(collectionName)
 
 	now := time.Now()
+
+	log.Println("check cate", p.Category)
 
 	insertRes, insertErr := collection.InsertOne(ctx, bson.D{
 		{Key: "title", Value: p.Title},
@@ -80,7 +120,7 @@ func Add(p *Project) (*Project, errors.CustomError) {
 		{Key: "videos", Value: p.Videos},
 		{Key: "keywords", Value: p.Keywords},
 		{Key: "status", Value: p.Status},
-		{Key: "category", Value: p.Category},
+		{Key: "category", Value: categories},
 		{Key: "views", Value: 0},
 		{Key: "createdAt", Value: now},
 		{Key: "updatedAt", Value: now},
@@ -93,6 +133,7 @@ func Add(p *Project) (*Project, errors.CustomError) {
 	p.ID = insertRes.InsertedID.(primitive.ObjectID)
 	p.CreatedAt = now
 	p.UpdatedAt = now
+	// p.Category = categories
 	p.Views = 0
 
 	return p, nil

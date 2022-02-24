@@ -1,6 +1,8 @@
 package project
 
 import (
+	"log"
+
 	"github.com/birdglove2/nitad-backend/api/category"
 	"github.com/birdglove2/nitad-backend/api/subcategory"
 	"github.com/birdglove2/nitad-backend/api/validators"
@@ -24,11 +26,13 @@ func AddProjectValidator(c *fiber.Ctx) error {
 	if err != nil {
 		return errors.Throw(c, err)
 	}
+	log.Println("check x")
 
 	categories, _, err := category.FindByIds(pr.Category)
 	if err != nil {
 		return errors.Throw(c, err)
 	}
+	log.Println("check y")
 
 	finalCategories, err := category.FilterCatesWithSids(categories, sids)
 	if err != nil {
@@ -45,9 +49,10 @@ func AddProjectValidator(c *fiber.Ctx) error {
 	project.Videos = pr.Videos
 	project.Keywords = pr.Keywords
 	project.Status = pr.Status
-	project.Category = finalCategories
+	// project.Category = finalCategories
 
 	c.Locals("projectBody", project)
+	c.Locals("category", finalCategories)
 
 	return c.Next()
 }
@@ -89,10 +94,11 @@ func EditProjectValidator(c *fiber.Ctx) error {
 	project.Videos = upr.Videos
 	project.Keywords = upr.Keywords
 	project.Status = upr.Status
-	project.Category = finalCategories
+	// project.Category = finalCategories
 	project.DeleteImages = upr.DeleteImages
 
 	c.Locals("updateProjectBody", project)
+	c.Locals("category", finalCategories)
 
 	return c.Next()
 }
