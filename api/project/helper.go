@@ -16,10 +16,15 @@ import (
 
 func GetLookupStage() mongo.Pipeline {
 	pipe := mongo.Pipeline{}
-	pipe = database.AppendLookupStage(pipe, "category")
 	// pipe = database.AppendUnwindStage(pipe, "category")
+	pipe = database.AppendLookupStage(pipe, "category")
+	pipe = append(pipe, bson.D{{Key: "$lookup", Value: bson.D{
+		{Key: "from", Value: "subcategory"},
+		{Key: "localField", Value: "subcategory"},
+		{Key: "foreignField", Value: "_id"},
+		{Key: "as", Value: "category.subcategory.sub"}}}})
 
-	pipe = database.AppendLookupStage(pipe, "subcategory")
+	// pipe = database.AppendLookupStage(pipe, "subcategory")
 
 	return pipe
 }

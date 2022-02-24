@@ -10,6 +10,28 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+func GetById2(oid primitive.ObjectID) (bson.M, errors.CustomError) {
+	projectCollection, ctx := database.GetCollection(collectionName)
+
+	pipe := GetLookupStage()
+	pipe = database.AppendMatchStage(pipe, "_id", oid)
+
+	cursor, err := projectCollection.Aggregate(ctx, pipe)
+	result := []bson.M{}
+	if err != nil {
+		return bson.M{}, errors.NewBadRequestError(err.Error())
+	}
+	if err = cursor.All(ctx, &result); err != nil {
+		return bson.M{}, errors.NewBadRequestError(err.Error())
+	}
+
+	if len(result) == 0 {
+		return bson.M{}, errors.NewNotFoundError("projectId")
+	}
+
+	return result[0], nil
+}
+
 func GetById(oid primitive.ObjectID) (Project, errors.CustomError) {
 	projectCollection, ctx := database.GetCollection(collectionName)
 

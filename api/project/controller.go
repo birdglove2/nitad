@@ -11,6 +11,7 @@ import (
 	"github.com/birdglove2/nitad-backend/gcp"
 	"github.com/birdglove2/nitad-backend/redis"
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -100,8 +101,8 @@ func (contc *Controller) GetProject(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{"success": true, "result": p})
 	}
 
-	var result Project
-	if result, err = GetById(objectId); err != nil {
+	var result bson.M
+	if result, err = GetById2(objectId); err != nil {
 		return errors.Throw(c, err)
 	}
 
