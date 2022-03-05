@@ -10,17 +10,28 @@ import (
 	"go.uber.org/zap"
 )
 
-var store *Storage
-var DefaultCacheExpireTime time.Duration = time.Second * 3
-
-func GetStore() *Storage {
-	return store
+type RedisStorage interface {
+	GetStorage() *Storage
+	SetCache(key string, val interface{})
+	SetCacheInt(key string, val int)
+	GetCacheInt(key string) int
+	DeleteCache(key string)
 }
 
-func Init() *Storage {
+type redisStorage struct {
+	store *Storage
+}
+
+var DefaultCacheExpireTime time.Duration = time.Second * 3
+
+func (r redisStorage) GetStorage() *Storage {
+	return r.store
+}
+
+func Init() redisStorage {
 	port, _ := strconv.Atoi(os.Getenv("REDIS_PORT"))
 
-	store = New(Config{
+	store := New(Config{
 		Host:      os.Getenv("REDIS_ENDPOINT"),
 		Port:      port,
 		Username:  "",
@@ -30,31 +41,33 @@ func Init() *Storage {
 		Reset:     false,
 		TLSConfig: nil,
 	})
-	return store
+	return redisStorage{
+		store: store,
+	}
 }
 
-func SetCache(key string, val interface{}) {
+func (r redisStorage) SetCache(key string, val interface{}) {
 	b, marshalErr := json.Marshal(val)
 	if marshalErr != nil {
 		zap.S().Warn("Cache: Marshal binary failed: " + marshalErr.Error())
 	}
-	err := store.Set(key, b, DefaultCacheExpireTime)
+	err := r.store.Set(key, b, DefaultCacheExpireTime)
 	if err != nil {
 		zap.S().Warn("Set Cache error: " + err.Error())
 	}
 }
 
 // set cache for any int value ex: views
-func SetCacheInt(key string, val int) {
-	err := store.Set(key, []byte(fmt.Sprint(val)), 0)
+func (r redisStorage) SetCacheInt(key string, val int) {
+	err := r.store.Set(key, []byte(fmt.Sprint(val)), 0)
 	if err != nil {
 		zap.S().Warn("Set View cache error: ", err.Error())
 	}
 }
 
 // get cache for any int value ex: views
-func GetCacheInt(key string) int {
-	bytes, err := store.Get(key)
+func (r redisStorage) GetCacheInt(key string) int {
+	bytes, err := r.store.Get(key)
 	if err != nil {
 		zap.S().Warn("Get View cache error: ", err.Error())
 		return 0
@@ -68,25 +81,9 @@ func GetCacheInt(key string) int {
 	return count
 }
 
-func DeleteCache(key string) {
-	err := store.Delete(key)
+func (r redisStorage) DeleteCache(key string) {
+	err := r.store.Delete(key)
 	if err != nil {
 		zap.S().Warn("Delete cache failed, key=", key, ", error: ", err.Error())
 	}
 }
-
-// func m() {
-// 	redis.NewClient()
-// }
-
-// func FindAllCacheByPrefix(prefix string) ([]string, uint64) {
-// 	var keys []string
-// 	var err error
-// 	var cursor uint64
-// 	return store.Scan(prefix)
-// 	keys, cursor, err = store.db.Scan(ctx, cursor, prefix+"*", 0).Result()
-// 	if err != nil {
-// 		zap.S().Warn("find all prefix=", prefix, " cache error:", err.Error())
-// 	}
-// 	return keys, cursor
-// }

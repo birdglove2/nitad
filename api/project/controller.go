@@ -13,10 +13,11 @@ import (
 
 func NewController(
 	gcpService gcp.Uploader,
+	redisService redis.RedisStorage,
 	projectRoute fiber.Router,
 ) {
 
-	controller := &Controller{gcpService}
+	controller := &Controller{gcpService, redisService}
 
 	projectRoute.Get("/", controller.ListProject)
 	projectRoute.Get("/:projectId", controller.GetProject)
@@ -29,7 +30,8 @@ func NewController(
 }
 
 type Controller struct {
-	gcpService gcp.Uploader
+	gcpService   gcp.Uploader
+	redisService redis.RedisStorage
 }
 
 // list all projects
@@ -57,7 +59,7 @@ func (contc *Controller) GetProject(c *fiber.Ctx) error {
 	}
 
 	if os.Getenv("APP_ENV") != "test" {
-		cacheProject := HandleCacheGetProjectById(c, projectId)
+		cacheProject := HandleCacheGetProjectById(c, contc.redisService, projectId)
 
 		if cacheProject != nil {
 			return c.Status(fiber.StatusOK).JSON(fiber.Map{"success": true, "result": cacheProject})
@@ -71,7 +73,7 @@ func (contc *Controller) GetProject(c *fiber.Ctx) error {
 
 	IncrementView(objectId, 1)
 	if os.Getenv("APP_ENV") != "test" {
-		redis.SetCache(c.Path(), result)
+		contc.redisService.SetCache(c.Path(), result)
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"success": true, "result": result})

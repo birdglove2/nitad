@@ -24,15 +24,15 @@ func IncrementView(id primitive.ObjectID, val int) {
 	}
 }
 
-func IncrementViewCache(id string, views int) {
+func IncrementViewCache(r redis.RedisStorage, id string, views int) {
 	key := "views" + id
 	// log.Println("9")
-	countInt := redis.GetCacheInt(key)
+	countInt := r.GetCacheInt(key)
 	// log.Println("10")
 	if countInt != 0 {
-		redis.SetCacheInt(key, countInt+1)
+		r.SetCacheInt(key, countInt+1)
 		zap.S().Info("incrementing view of ", key, " = ", countInt+1)
 		return
 	}
-	redis.SetCacheInt(key, 1)
+	r.SetCacheInt(key, 1)
 }

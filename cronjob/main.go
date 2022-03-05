@@ -8,25 +8,30 @@ import (
 	"go.uber.org/zap"
 )
 
-func Init() {
+func Init(redisService redis.RedisStorage) {
 	c := cron.New()
 
-	c.AddFunc("@every 12h", UpdateProjectViews) // every 12 hours
-	// c.AddFunc("@every 50s", UpdateProjectViews) // test
+	cron := &Cron{redisService}
+	c.AddFunc("@every 12h", cron.UpdateProjectViews) // every 12 hours
+	// c.AddFunc("@every 50s", UpdateProjectViews)      // test
 
 	c.Start()
 }
 
-func UpdateProjectViews() {
-	store := redis.GetStore()
+type Cron struct {
+	redisService redis.RedisStorage
+}
+
+func (cron Cron) UpdateProjectViews() {
+	store := cron.redisService.GetStorage()
 	for {
-		keys, cursor := redis.GetStore().Scan("views")
+		keys, cursor := store.Scan("views")
 
 		for _, key := range keys {
 			projectId := key[5:]
 			objectId, _ := primitive.ObjectIDFromHex(projectId)
 
-			countInt := redis.GetCacheInt(key)
+			countInt := cron.redisService.GetCacheInt(key)
 
 			project.IncrementView(objectId, countInt)
 

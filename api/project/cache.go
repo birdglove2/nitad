@@ -27,11 +27,11 @@ func IsGetProjectPath(c *fiber.Ctx) bool {
 	return false
 }
 
-func HandleCacheGetProjectById(c *fiber.Ctx, projectId string) *Project {
+func HandleCacheGetProjectById(c *fiber.Ctx, r redis.RedisStorage, projectId string) *Project {
 	var p Project
-	b, _ := redis.GetStore().Get(c.Path())
+	b, _ := r.GetStorage().Get(c.Path())
 	if len(b) > 0 {
-		IncrementViewCache(projectId, p.Views)
+		IncrementViewCache(r, projectId, p.Views)
 		err := json.Unmarshal(b, &p)
 		if err != nil {
 			zap.S().Warn("Unmarshal fail", err.Error())

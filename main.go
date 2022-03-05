@@ -4,14 +4,17 @@ import (
 	"os"
 
 	"github.com/birdglove2/nitad-backend/api"
+	"github.com/birdglove2/nitad-backend/api/project"
 	"github.com/birdglove2/nitad-backend/config"
 	"github.com/birdglove2/nitad-backend/cronjob"
 	"github.com/birdglove2/nitad-backend/database"
 	"github.com/birdglove2/nitad-backend/errors"
 	"github.com/birdglove2/nitad-backend/gcp"
+	"github.com/birdglove2/nitad-backend/redis"
 	"github.com/birdglove2/nitad-backend/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cache"
 	"go.uber.org/zap"
 )
 
@@ -31,12 +34,24 @@ func main() {
 	defer database.DisconnectDb()
 
 	uploader := gcp.Init()
+	redisService := redis.Init()
 
 	app := config.InitApp()
+	app.Use(cache.New(cache.Config{
+		Expiration: redis.DefaultCacheExpireTime,
+		Storage:    redisService.GetStorage(),
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return c.Path() + "?" + string(c.Request().URI().QueryString())
+		},
+		Next: func(c *fiber.Ctx) bool {
+			isTrue := project.IsGetProjectPath(c) // handle incrementing view in cache
+			return isTrue
+		},
+	}))
 
-	api.CreateAPI(app, uploader)
+	api.CreateAPI(app, uploader, redisService)
 
-	cronjob.Init()
+	cronjob.Init(redisService)
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{"success": true, "result": "Hello, this is NITAD Backend Server v2.2  !"})
