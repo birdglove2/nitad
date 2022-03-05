@@ -1,6 +1,7 @@
-package project_test
+package project
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -10,24 +11,36 @@ import (
 	"github.com/birdglove2/nitad-backend/api/subcategory"
 	"github.com/birdglove2/nitad-backend/config"
 	"github.com/birdglove2/nitad-backend/database"
+	redis "github.com/birdglove2/nitad-backend/redis"
 	"github.com/gofiber/fiber/v2"
-	gomock "github.com/golang/mock/gomock"
+	"github.com/gofiber/fiber/v2/middleware/cache"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func newTestApp(t *testing.T) *fiber.App {
+func NewTestApp(t *testing.T, gcpService *MockUploader, redisService redis.RedisStorage) *fiber.App {
 	config.Loadenv()
 	database.ConnectDb(os.Getenv("MONGO_URI"))
 
 	app := fiber.New()
 
-	ctrl := gomock.NewController(t)
-	// defer ctrl.Finish()
+	// redisService := redis.Init()
+	fmt.Println("check 1")
+	app.Use(cache.New(cache.Config{
+		Expiration: redis.DefaultCacheExpireTime,
+		Storage:    redisService.GetStorage(),
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return c.Path() + "?" + string(c.Request().URI().QueryString())
+		},
+		Next: func(c *fiber.Ctx) bool {
+			isTrue := project.IsGetProjectPath(c) // handle incrementing view in cache
+			return isTrue
+		},
+	}))
+	fmt.Println("check 2")
 
-	gcpService := NewMockUploader(ctrl)
-
-	api.CreateAPI(app, gcpService)
+	api.CreateAPI(app, gcpService, redisService)
+	fmt.Println("check 3")
 
 	return app
 }

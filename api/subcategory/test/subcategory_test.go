@@ -1,4 +1,4 @@
-package subcategory_test
+package subcategory
 
 import (
 	"image"
@@ -25,8 +25,8 @@ func newTestApp(t *testing.T) *fiber.App {
 	defer ctrl.Finish()
 
 	gcpService := NewMockUploader(ctrl)
-
-	api.CreateAPI(app, gcpService)
+	redisService := NewMockRedisStorage(ctrl)
+	api.CreateAPI(app, gcpService, redisService)
 
 	return app
 }
@@ -41,9 +41,13 @@ func getImageFromFilePath(filePath string) (image.Image, error) {
 	return image, err
 }
 
-func TestGetSubcategory(t *testing.T) {
+func TestGetSubcategoryById(t *testing.T) {
+	// sub := helper.addMockSubcategory()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	server := newTestApp(t)
 
 	testCases := []struct {
 		name          string
@@ -59,19 +63,7 @@ func TestGetSubcategory(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// ctrl := gomock.NewController(t)
-			// defer ctrl.Finish()
 
-			// config.Loadenv()
-			// database.ConnectDb(os.Getenv("MONGO_URI"))
-
-			// app := fiber.New()
-
-			// gcpService := NewMockUploader(ctrl)
-
-			// api.CreateAPI(app, gcpService)
-
-			server := newTestApp(t)
 			url := "/api/v1/subcategory"
 
 			request, err := http.NewRequest(http.MethodGet, url, nil)
@@ -84,12 +76,6 @@ func TestGetSubcategory(t *testing.T) {
 				zap.S().Fatal("error", err.Error())
 			}
 
-			// bodyBytes, err := io.ReadAll(resp.Body)
-			// if err != nil {
-			// zap.S().Fatal("error", err.Error())
-			// }
-			// bodyString := string(bodyBytes)
-			// fmt.Println("This is RESPONSE SUBCATE  ", bodyString)
 			require.Equal(t, err, nil)
 
 			tc.checkResponse(t, resp)

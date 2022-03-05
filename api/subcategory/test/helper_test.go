@@ -1,4 +1,4 @@
-package subcategory_test
+package subcategory
 
 import (
 	"mime/multipart"

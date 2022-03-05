@@ -12,6 +12,7 @@ import (
 )
 
 func IsGetProjectPath(c *fiber.Ctx) bool {
+
 	path := c.Path()
 	if strings.Contains(path, "/api/v1/project") {
 		pathArr := strings.Split(path, "/")
@@ -24,6 +25,7 @@ func IsGetProjectPath(c *fiber.Ctx) bool {
 			return true
 		}
 	}
+
 	return false
 }
 

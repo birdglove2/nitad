@@ -1,4 +1,4 @@
-package project_test
+package project
 
 import (
 	"encoding/json"
@@ -7,29 +7,35 @@ import (
 	"testing"
 
 	"github.com/birdglove2/nitad-backend/api/project"
+	"github.com/birdglove2/nitad-backend/redis"
+	gomock "github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddProjectService(t *testing.T) {
-	newTestApp(t)
+// func TestAddProjectService(t *testing.T) {
+// 	newTestApp(t)
 
-	subcate := addMockSubcategory(t)
-	cate := addMockCategory(t, subcate)
+// 	subcate := addMockSubcategory(t)
+// 	cate := addMockCategory(t, subcate)
 
-	addMockProject(t, cate)
-	//TODO: add from http request
-
-}
+// 	addMockProject(t, cate)
+// 	//TODO: add from http request
+// }
 
 type Response struct {
 	Result project.Project
 }
 
 func TestGetProjectById(t *testing.T) {
-	app := newTestApp(t)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	gcpService := NewMockUploader(ctrl)
+	redisService := redis.Init()
+
+	app := newTestApp(t, gcpService, redisService)
 
 	subcate := addMockSubcategory(t)
-
 	cate := addMockCategory(t, subcate)
 	proj := addMockProject(t, cate)
 
